@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>DuctPro Calc — HVAC & Ductwork</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .blueprint-grid {
+      background-color: #0b1325;
+      background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    input[type="range"] { accent-color: #f59e0b; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-24">
+
+  <!-- ШАПКА -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 font-black text-base shadow-lg shadow-amber-500/20">DP</div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <h1 class="font-bold text-sm tracking-wide">DuctPro <span class="text-amber-400">Calc</span></h1>
+          <span id="proBadge" class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">FREE</span>
+        </div>
+        <p class="text-[11px] text-slate-400" data-i18n="subtitle">Калькулятор монтажа вентиляции</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <select id="langSelect" onchange="setLanguage(this.value)" class="bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded-lg px-2 py-1.5 outline-none">
+        <option value="ru">RU</option>
+        <option value="en">EN</option>
+        <option value="ro">RO</option>
+      </select>
+      <button onclick="openProModal()" id="upgradeBtn" class="bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg shadow">★ PRO</button>
+    </div>
+  </header>
+
+  <!-- ОСНОВНОЙ ЭКРАН -->
+  <main class="p-4 max-w-md mx-auto w-full space-y-4">
+
+    <!-- ВКЛАДКА 1: СМЕЩЕНИЯ (OFFSETS) -->
+    <section id="tab-offsets" class="space-y-3.5">
+      <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+        <button id="modeSingleBtn" onclick="setOffsetMode('single')" class="py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950" data-i18n="singleOffset">Одинарное (2 отвода)</button>
+        <button id="modeRollingBtn" onclick="setOffsetMode('rolling')" class="py-2 text-xs font-bold rounded-lg text-slate-400 flex items-center justify-center gap-1">
+          <span data-i18n="rollingOffset">Двойное 3D</span>
+          <span class="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-extrabold">PRO</span>
+        </button>
+      </div>
+
+      <div class="blueprint-grid rounded-2xl border border-slate-800 p-3">
+        <div class="flex justify-between text-[11px] text-sky-400 font-mono mb-1">
+          <span id="blueprintTitle">CAD // SINGLE OFFSET</span>
+          <span id="angleDisplayBadge">∠ 45°</span>
+        </div>
+        <svg id="offsetSvg" viewBox="0 0 340 165" class="w-full h-40"></svg>
+      </div>
+
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5 space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-semibold text-slate-300" data-i18n="bendAngle">Угол отводов:</span>
+          <div class="flex gap-1.5">
+            <button onclick="setAngle(30)" class="angle-btn px-3 py-1 rounded-lg text-xs font-bold bg-slate-900 text-slate-300 border border-slate-700" data-angle="30">30°</button>
+            <button onclick="setAngle(45)" class="angle-btn px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 border border-amber-400" data-angle="45">45°</button>
+            <button onclick="setAngle(60)" class="angle-btn px-3 py-1 rounded-lg text-xs font-bold bg-slate-900 text-slate-300 border border-slate-700" data-angle="60">60°</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1" data-i18n="offsetH">Смещение O (мм):</label>
+            <input id="inputOffset" type="number" value="350" oninput="calculateOffset()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-white outline-none" />
+          </div>
+          <div id="riseContainer" class="hidden">
+            <label class="text-[11px] text-amber-400 block mb-1" data-i18n="riseR">Подъем R (мм) [3D]:</label>
+            <input id="inputRise" type="number" value="250" oninput="calculateOffset()" class="w-full bg-slate-900 border border-amber-500/60 rounded-xl px-3 py-2 text-base font-bold text-amber-300 outline-none" />
+          </div>
+          <div id="ductDiaContainer">
+            <label class="text-[11px] text-slate-400 block mb-1" data-i18n="ductSize">Диаметр / Ширина (мм):</label>
+            <input id="inputDuctSize" type="number" value="250" oninput="calculateOffset()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-white outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+            <span data-i18n="collarDeduct">Вычет на отводы / ниппель (мм):</span>
+            <span id="deductVal" class="text-sky-400 font-bold">80 мм</span>
+          </div>
+          <input id="inputDeduct" type="range" min="0" max="300" step="5" value="80" oninput="calculateOffset()" class="w-full" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2.5">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-3 text-center">
+          <div class="text-[10px] text-slate-400 uppercase" data-i18n="travelCenter">По центрам (T)</div>
+          <div id="resTravel" class="text-lg font-black text-sky-400 mt-0.5">495 мм</div>
+        </div>
+        <div class="bg-amber-500/15 border border-amber-500/50 rounded-2xl p-3 text-center">
+          <div class="text-[10px] text-amber-300 uppercase font-bold" data-i18n="cutLength">Отрез трубы (L)</div>
+          <div id="resCut" class="text-xl font-black text-amber-400 mt-0.5">415 мм</div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-3 text-center">
+          <div class="text-[10px] text-slate-400 uppercase" data-i18n="advanceRun">Проекция (A)</div>
+          <div id="resAdvance" class="text-lg font-black text-emerald-400 mt-0.5">350 мм</div>
+        </div>
+      </div>
+
+      <button onclick="addOffsetToOrder()" class="w-full py-3 rounded-xl bg-slate-800 border border-slate-600 text-xs font-bold text-amber-400">
+        ＋ <span data-i18n="addToCutList">Добавить узел в список заказа</span>
+      </button>
+    </section>
+
+    <!-- ВКЛАДКА 2: ОБХОД БАЛКИ (4 ОТВОДА) -->
+    <section id="tab-saddle" class="hidden space-y-3.5">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 space-y-3">
+        <h2 class="text-xs font-bold text-amber-400 uppercase">Обход препятствия / балки (4 отвода 45°)</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Высота обхода H (мм):</label>
+            <input id="saddleH" type="number" value="300" oninput="calcSaddle()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-white outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Ширина балки W (мм):</label>
+            <input id="saddleW" type="number" value="400" oninput="calcSaddle()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-white outline-none" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5 pt-2">
+          <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-center">
+            <div class="text-[10px] text-slate-400">Боковые вставки (2 шт)</div>
+            <div id="resSaddleLeg" class="text-lg font-black text-amber-400 mt-0.5">424 мм</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-center">
+            <div class="text-[10px] text-slate-400">Общая длина узла</div>
+            <div id="resSaddleTotal" class="text-lg font-black text-sky-400 mt-0.5">1000 мм</div>
+          </div>
+        </div>
+        <button onclick="addSaddleToOrder()" class="w-full py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-xs font-bold text-amber-400">
+          ＋ Добавить обход (4 отвода) в заказ
+        </button>
+      </div>
+    </section>
+
+    <!-- ВКЛАДКА 3: СЕЧЕНИЕ И ПОТОК -->
+    <section id="tab-airflow" class="hidden space-y-3.5">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Ширина A (мм):</label>
+            <input id="airWidth" type="number" value="400" oninput="calcAirflow()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-white outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Высота B (мм):</label>
+            <input id="airHeight" type="number" value="250" oninput="calcAirflow()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-white outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Расход (м³/ч):</label>
+            <input id="airFlow" type="number" value="1200" oninput="calcAirflow()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-sky-400 outline-none" />
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Длина участка (м):</label>
+            <input id="airLength" type="number" value="1.25" step="0.25" oninput="calcAirflow()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-base font-bold text-white outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400">Скорость воздуха:</div>
+          <div id="resVelocity" class="text-xl font-black text-emerald-400 mt-0.5">3.33 м/с</div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400">Экв. диаметр:</div>
+          <div id="resEquivDia" class="text-xl font-black text-sky-400 mt-0.5">Ø 342 мм</div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400">Площадь жести (DW/144):</div>
+          <div id="resMetalArea" class="text-xl font-black text-amber-400 mt-0.5">1.63 м²</div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400">Сечение канала:</div>
+          <div id="resCrossArea" class="text-xl font-black text-white mt-0.5">0.100 м²</div>
+        </div>
+      </div>
+
+      <button onclick="addDuctToOrder()" class="w-full py-3 rounded-xl bg-slate-800 border border-slate-600 text-xs font-bold text-amber-400">
+        ＋ Добавить короб в список заказа
+      </button>
+    </section>
+
+    <!-- ВКЛАДКА 4: ЗАКАЗ НА ОБЪЕКТ -->
+    <section id="tab-order" class="hidden space-y-3.5">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-xs font-bold text-amber-400 uppercase">Спецификация / Заказ деталей</h2>
+          <button onclick="clearOrderList()" class="text-xs text-rose-400">Очистить</button>
+        </div>
+        <div id="orderItemsContainer" class="space-y-2 text-xs text-slate-200"></div>
+        <button onclick="shareWhatsApp()" class="mt-4 w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2">
+          📲 Отправить список в WhatsApp
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- НИЖНЕЕ МЕНЮ -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-3 py-2 flex justify-around items-center z-30 max-w-md mx-auto">
+    <button onclick="switchTab('offsets')" id="nav-offsets" class="flex flex-col items-center text-amber-400 font-bold text-[11px]">
+      <span class="text-base">📐</span><span>Отводы</span>
+    </button>
+    <button onclick="switchTab('saddle')" id="nav-saddle" class="flex flex-col items-center text-slate-400 text-[11px]">
+      <span class="text-base">🚧</span><span>Обход</span>
+    </button>
+    <button onclick="switchTab('airflow')" id="nav-airflow" class="flex flex-col items-center text-slate-400 text-[11px]">
+      <span class="text-base">💨</span><span>Короб</span>
+    </button>
+    <button onclick="switchTab('order')" id="nav-order" class="flex flex-col items-center text-slate-400 text-[11px] relative">
+      <span class="text-base">📋</span><span>Заказ</span>
+      <span id="orderCountBadge" class="absolute -top-1 right-0 bg-amber-500 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">1</span>
+    </button>
+  </nav>
+
+  <!-- ОКНО PRO -->
+  <div id="proModal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-black text-amber-400">DuctPro Calc PRO</h3>
+        <button onclick="closeProModal()" class="text-slate-400 text-lg">✕</button>
+      </div>
+      <p class="text-xs text-slate-300">Полный доступ к 3D расчётам (Rolling Offset), обходу балок и отправке ведомостей без рекламы.</p>
+      <button onclick="activateProDemo()" class="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">
+        Активировать PRO (£4.99)
+      </button>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+
+    let state = {
+      isPro: false,
+      offsetMode: 'single',
+      angle: 45,
+      orderList: [{ text: "Отвод 45° Ø250мм (2 шт) + Вставка L=415мм" }]
+    };
+
+    function switchTab(tab) {
+      ['offsets', 'saddle', 'airflow', 'order'].forEach(t => {
+        document.getElementById('tab-' + t).classList.add('hidden');
+        document.getElementById('nav-' + t).className = "flex flex-col items-center text-slate-400 text-[11px] relative";
+      });
+      document.getElementById('tab-' + tab).classList.remove('hidden');
+      document.getElementById('nav-' + tab).className = "flex flex-col items-center text-amber-400 font-bold text-[11px] relative";
+      if (tab === 'order') renderOrderList();
+    }
+
+    function setOffsetMode(mode) {
+      if (mode === 'rolling' && !state.isPro) { openProModal(); return; }
+      state.offsetMode = mode;
+      document.getElementById('riseContainer').classList.toggle('hidden', mode === 'single');
+      calculateOffset();
+    }
+
+    function setAngle(deg) {
+      state.angle = deg;
+      document.getElementById('angleDisplayBadge').textContent = `∠ ${deg}°`;
+      document.querySelectorAll('.angle-btn').forEach(btn => {
+        btn.className = Number(btn.dataset.angle) === deg
+          ? "angle-btn px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 border border-amber-400"
+          : "angle-btn px-3 py-1 rounded-lg text-xs font-bold bg-slate-900 text-slate-300 border border-slate-700";
+      });
+      calculateOffset();
+    }
+
+    function calculateOffset() {
+      const offset = Number(document.getElementById('inputOffset').value) || 0;
+      const rise = Number(document.getElementById('inputRise').value) || 0;
+      const deduct = Number(document.getElementById('inputDeduct').value) || 0;
+      document.getElementById('deductVal').textContent = `${deduct} мм`;
+
+      const rad = (state.angle * Math.PI) / 180;
+      const trueOff = state.offsetMode === 'rolling' ? Math.sqrt(offset * offset + rise * rise) : offset;
+      const travel = trueOff / Math.sin(rad);
+      const advance = trueOff / Math.tan(rad);
+      const cut = Math.max(0, travel - deduct);
+
+      document.getElementById('resTravel').textContent = `${Math.round(travel)} мм`;
+      document.getElementById('resCut').textContent = `${Math.round(cut)} мм`;
+      document.getElementById('resAdvance').textContent = `${Math.round(advance)} мм`;
+
+      document.getElementById('offsetSvg').innerHTML = `
+        <line x1="20" y1="130" x2="115" y2="130" stroke="#38bdf8" stroke-width="9" stroke-linecap="round"/>
+        <line x1="115" y1="130" x2="215" y2="38" stroke="#f59e0b" stroke-width="9" stroke-linecap="round"/>
+        <line x1="215" y1="38" x2="315" y2="38" stroke="#38bdf8" stroke-width="9" stroke-linecap="round"/>
+        <text x="165" y="152" fill="#34d399" font-size="11" font-family="monospace" text-anchor="middle">A = ${Math.round(advance)} мм</text>
+        <text x="225" y="92" fill="#e2e8f0" font-size="11" font-family="monospace">O = ${Math.round(trueOff)} мм</text>
+        <text x="150" y="74" fill="#fbbf24" font-size="12" font-weight="bold" font-family="monospace" text-anchor="end">L = ${Math.round(cut)} мм</text>
+      `;
+    }
+
+    function calcSaddle() {
+      const h = Number(document.getElementById('saddleH').value) || 0;
+      const w = Number(document.getElementById('saddleW').value) || 0;
+      const leg = Math.round(h * 1.414);
+      const total = Math.round(w + h * 2);
+      document.getElementById('resSaddleLeg').textContent = `${leg} мм`;
+      document.getElementById('resSaddleTotal').textContent = `${total} мм`;
+    }
+
+    function calcAirflow() {
+      const a = Number(document.getElementById('airWidth').value) || 100;
+      const b = Number(document.getElementById('airHeight').value) || 100;
+      const q = Number(document.getElementById('airFlow').value) || 0;
+      const len = Number(document.getElementById('airLength').value) || 1;
+      const area = (a * b) / 1000000;
+      const vel = area > 0 ? (q / 3600) / area : 0;
+      const eq = 1.30 * Math.pow(a * b, 0.625) / Math.pow(a + b, 0.25);
+      const metal = 2 * ((a + b) / 1000) * len;
+
+      document.getElementById('resVelocity').textContent = `${vel.toFixed(2)} м/с`;
+      document.getElementById('resEquivDia').textContent = `Ø ${Math.round(eq)} мм`;
+      document.getElementById('resMetalArea').textContent = `${metal.toFixed(2)} м²`;
+      document.getElementById('resCrossArea').textContent = `${area.toFixed(3)} м²`;
+    }
+
+    function addOffsetToOrder() {
+      const dia = document.getElementById('inputDuctSize').value;
+      const cut = document.getElementById('resCut').textContent;
+      state.orderList.push({ text: `Смещение ${state.angle}° (Ø${dia}мм): 2 отвода + Вставка L=${cut}` });
+      document.getElementById('orderCountBadge').textContent = state.orderList.length;
+    }
+
+    function addSaddleToOrder() {
+      const leg = document.getElementById('resSaddleLeg').textContent;
+      state.orderList.push({ text: `Обход балки (4 отвода 45°): 2 боковые вставки по ${leg}` });
+      document.getElementById('orderCountBadge').textContent = state.orderList.length;
+    }
+
+    function addDuctToOrder() {
+      const a = document.getElementById('airWidth').value;
+      const b = document.getElementById('airHeight').value;
+      const l = document.getElementById('airLength').value;
+      state.orderList.push({ text: `Прямой участок ${a}x${b}мм, L=${l}м` });
+      document.getElementById('orderCountBadge').textContent = state.orderList.length;
+    }
+
+    function renderOrderList() {
+      const box = document.getElementById('orderItemsContainer');
+      box.innerHTML = state.orderList.map((it, i) => `
+        <div class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 flex justify-between">
+          <span><b>${i + 1}.</b> ${it.text}</span>
+          <button onclick="state.orderList.splice(${i},1);renderOrderList();" class="text-rose-400">✕</button>
+        </div>
+      `).join('');
+      document.getElementById('orderCountBadge').textContent = state.orderList.length;
+    }
+
+    function clearOrderList() { state.orderList = []; renderOrderList(); }
+
+    function shareWhatsApp() {
+      const text = encodeURIComponent("📐 Заказ вентиляции (DuctPro):\n" + state.orderList.map((x, i) => `${i+1}. ${x.text}`).join('\n'));
+      window.open(`https://wa.me/?text=${text}`, '_blank');
+    }
+
+    function openProModal() { document.getElementById('proModal').classList.replace('hidden', 'flex'); }
+    function closeProModal() { document.getElementById('proModal').classList.replace('flex', 'hidden'); }
+    function activateProDemo() {
+      state.isPro = true;
+      document.getElementById('proBadge').textContent = "PRO";
+      document.getElementById('upgradeBtn').classList.add('hidden');
+      closeProModal();
+    }
+
+    calculateOffset();
+    calcSaddle();
+    calcAirflow();
+  </script>
+</body>
+</html>
