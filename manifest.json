@@ -1,0 +1,19 @@
+{
+  "short_name": "DuctPro",
+  "name": "DuctPro Calc: HVAC & Ductwork Calculator",
+  "description": "Professional HVAC ductwork offset, airflow and sheet metal calculator for duct fitters.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
